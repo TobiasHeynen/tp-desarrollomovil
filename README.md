@@ -131,4 +131,3 @@ en la capa de servicios (por ejemplo, una función que rechace la promesa
 al azar) para probar el estado de error en cada pantalla.
 =======
 # tp-desarrollomovil
->>>>>>> f03fe1769d134096f3b72ca663b0e71d06415ea6
