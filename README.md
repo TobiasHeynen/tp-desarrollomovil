@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Reservas Deportivas — Villaguay
 
 Base del TP integrador de **Desarrollo para Móviles** (React Native + Expo +
