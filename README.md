@@ -122,12 +122,10 @@ propia que conviene confirmar:
 
 ## 5. Casos feos ya cubiertos en los mocks
 
-`src/mocks/` ya incluye los casos que pide explícitamente la consigna:
+src/mocks/` ya incluye los casos que pide explícitamente la consigna:
 un día entero bloqueado por lluvia (`esp-01`, 2026-09-20), un espacio sin
 video (`esp-02`), una reserva cancelada (`res-1099`), una fija que ocupa
 todos los martes (`fij-07`), y `generarGrillaLlenaMock()` para probar una
 grilla sin turnos libres. Falta agregar el caso de error de red simulado
 en la capa de servicios (por ejemplo, una función que rechace la promesa
 al azar) para probar el estado de error en cada pantalla.
-=======
-# tp-desarrollomovil
