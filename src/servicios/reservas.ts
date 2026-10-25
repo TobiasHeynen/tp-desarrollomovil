@@ -62,3 +62,9 @@ export async function cancelarReserva(id: string): Promise<Reserva> {
   reserva.estado = "cancelada";
   return demorar(reserva);
 }
+
+export async function obtenerReserva(id: string): Promise<Reserva> {
+  const reserva = RESERVAS.find((r) => r.id === id);
+  if (!reserva) throw new ErrorApi("RESERVA_NO_ENCONTRADA", "No encontramos esa reserva.");
+  return demorar({ ...reserva });
+}

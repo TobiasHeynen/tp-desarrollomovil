@@ -1,6 +1,7 @@
 import { Espacio, Deporte, RespuestaExito, ErrorApi } from "../tipos";
 import { ESPACIOS } from "../mocks/espacios";
 import { DEPORTES } from "../mocks/deportes";
+import { USUARIOS } from "../mocks/usuarios";
 
 // Ninguna pantalla debe importar los mocks directamente: todo pasa por acá.
 // El día que llegue la API de la cátedra, solo cambia el cuerpo de estas
@@ -43,4 +44,17 @@ export async function listarDeportes(): Promise<RespuestaExito<Deporte[]>> {
 export async function listarComplejos(): Promise<string[]> {
   const complejos = Array.from(new Set(ESPACIOS.map((e) => e.complejo)));
   return demorar(complejos);
+}
+
+//PERSONA B - agrega o saca un espacio de los favoritos del usuario y devuelve la lista nueva
+export async function alternarFavorito(usuarioId: string, espacioId: string): Promise<string[]> {
+    const usuario = USUARIOS.find((u) => u.id === usuarioId);
+    if (!usuario) throw new ErrorApi("USUARIO_NO_ENCONTRADO", "No encontramos ese usuario.");
+
+    if (usuario.espaciosFavoritos.includes(espacioId)) {
+        usuario.espaciosFavoritos = usuario.espaciosFavoritos.filter((id) => id !== espacioId);
+    } else {
+        usuario.espaciosFavoritos = [...usuario.espaciosFavoritos, espacioId];
+    }
+    return demorar([...usuario.espaciosFavoritos]);
 }
