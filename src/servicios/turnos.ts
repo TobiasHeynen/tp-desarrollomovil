@@ -1,5 +1,9 @@
 import { Turno, ErrorApi } from "../tipos";
-import { generarGrillaMock, generarGrillaLlenaMock } from "../mocks/turnos";
+import {
+  generarGrillaMock,
+  generarGrillaLlenaMock,
+  BLOQUEOS_MOCK,
+} from "../mocks/turnos";
 
 function demorar<T>(valor: T, ms = 400): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(valor), ms));
@@ -84,6 +88,25 @@ export function obtenerProximosDias(cantidad = 7): DiaSeleccionable[] {
   return dias;
 }
 
+/**
+ * Asegura que para la semana en curso existan horarios de mantenimiento
+ * visibles en los próximos 7 días (ya que el mock original tenía fechas
+ * fijas de septiembre), permitiendo demostrar todos los estados en vivo.
+ */
+function asegurarBloqueosSemanaActual(espacioId: string, fecha: string): void {
+  const yaTieneBloqueo = BLOQUEOS_MOCK.some(
+    (b) => b.espacioId === espacioId && b.fecha === fecha
+  );
+  if (!yaTieneBloqueo) {
+    BLOQUEOS_MOCK.push({
+      espacioId,
+      fecha,
+      horas: ["16:00", "20:00"],
+      motivo: "Mantenimiento de superficie y luminaria",
+    });
+  }
+}
+
 export interface OpcionesGrilla {
   simularLlena?: boolean;
   simularErrorRed?: boolean;
@@ -111,6 +134,8 @@ export async function obtenerGrilla(
     throw new ErrorApi("FECHA_INVALIDA", "No se puede consultar un día pasado.");
   }
 
+  asegurarBloqueosSemanaActual(espacioId, fecha);
+
   if (opciones.simularLlena) {
     return demorar(generarGrillaLlenaMock(espacioId, fecha));
   }
@@ -128,4 +153,4 @@ export function esTurnoPasado(fecha: string, inicio: string): boolean {
   const [anio, mesNum, diaNum] = fecha.split("-").map(Number);
   const turnoFecha = new Date(anio, mesNum - 1, diaNum, h, m, 0, 0);
   return turnoFecha.getTime() < ahora.getTime();
-}
+}
