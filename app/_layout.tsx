@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { AuthProvider } from "../src/contextos/AuthContext";
+import AvisosWatcher from "../src/componentes/AvisosWatcher";
 
 // PERSONA A: acá es donde, una vez resuelto `cargando` del AuthContext,
 // se decide redirigir a (auth)/login o dejar pasar a (tabs).
@@ -10,6 +11,7 @@ import { AuthProvider } from "../src/contextos/AuthContext";
 export default function LayoutRaiz() {
   return (
     <AuthProvider>
+      <AvisosWatcher />
       <Stack screenOptions={{ headerShown: true }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />

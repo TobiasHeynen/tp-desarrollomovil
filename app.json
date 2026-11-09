@@ -27,7 +27,27 @@
     "plugins": [
       "expo-router",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "expo-video",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Usamos la cámara para escanear el QR de ingreso de las reservas."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2E7D32"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Usamos tu ubicacion para mostrarte el complejo deportivo mas cercano en el mapa."
+        }
+      ],
+      "expo-sqlite"
     ]
   }
 }
