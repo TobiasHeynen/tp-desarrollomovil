@@ -31,6 +31,15 @@ export default function Login() {
         return null;
     }
 
+    //vuelve a donde estaba la persona, o al listado de espacios si el login era la primera pantalla
+    function seguirSinCuenta(): void {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace("/(tabs)");
+        }
+    }
+
     async function manejarLogin(): Promise<void> {
         const problema: string | null = validar();
         if (problema) {
@@ -102,6 +111,11 @@ export default function Login() {
                 >
                     <Text style={styles.textoBotonSecundario}>No tengo cuenta, crear una</Text>
                 </TouchableOpacity>
+
+                {/* el PRD pide no exigir cuenta para mirar espacios y disponibilidad */}
+                <TouchableOpacity style={styles.botonSecundario} onPress={seguirSinCuenta} disabled={enviando}>
+                    <Text style={styles.textoSinCuenta}>Seguir sin cuenta</Text>
+                </TouchableOpacity>
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -118,4 +132,5 @@ const styles = StyleSheet.create({
     textoBotonPrimario: { color: "#fff", fontWeight: "700", fontSize: 15 },
     botonSecundario: { paddingVertical: 10, alignItems: "center" },
     textoBotonSecundario: { color: "#2E7D32", fontWeight: "600" },
+    textoSinCuenta: { color: "#666", fontWeight: "600" },
 });

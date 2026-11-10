@@ -13,6 +13,11 @@ import PantallaBloqueo from "../src/componentes/PantallaBloqueo";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+//la app siempre arranca en las pestañas (listado de espacios), nunca en el login
+export const unstable_settings = {
+    initialRouteName: "(tabs)",
+};
+
 function Navegacion() {
     const { cargando, bloqueada } = useAuth();
 

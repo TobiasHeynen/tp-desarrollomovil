@@ -77,11 +77,14 @@ export type ResultadoHuella = "ok" | "cancelado" | "fallo";
 export async function pedirHuella(mensaje: string): Promise<ResultadoHuella> {
     const resultado = await LocalAuthentication.authenticateAsync({
         promptMessage: mensaje,
-        cancelLabel: "Cancelar",
-        //si la huella falla varias veces el telefono ofrece su PIN o patron
-        disableDeviceFallback: false,
+        cancelLabel: "Usar mi contraseña",
+        //no se usa el PIN/patron del telefono como alternativa: en Android esa pantalla del sistema
+        //no siempre devuelve el resultado a la app (en Expo Go quedaba trabada).
+        //La alternativa es la contraseña de la cuenta, que se pide en PantallaBloqueo
+        disableDeviceFallback: true,
     });
     if (resultado.success) return "ok";
+    console.warn("La huella no se pudo usar:", resultado.error);
     if (
         resultado.error === "user_cancel" ||
         resultado.error === "system_cancel" ||

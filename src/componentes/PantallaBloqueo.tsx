@@ -14,14 +14,17 @@ import { useAuth, ResultadoDesbloqueo } from "../contextos/AuthContext";
 
 //TOBIAS - pantalla de reingreso
 //se dibuja encima de toda la app cuando hay una sesion guardada esperando confirmacion
-//primero prueba con huella/rostro; si el telefono no tiene, pide la contraseña
+//primero prueba con huella/rostro; si el telefono no tiene, o la persona cancela, pide la contraseña
 
 export default function PantallaBloqueo() {
     const { usuarioBloqueado, desbloquear, desbloquearConPassword, seguirSinIngresar, cerrarSesion } = useAuth();
     const [conPassword, setConPassword] = useState<boolean>(false);
     const [password, setPassword] = useState<string>("");
     const [mensaje, setMensaje] = useState<string | null>(null);
+    //"esperando" es solo para la contraseña: la huella no bloquea el formulario,
+    //asi si el dialogo del sistema no responde igual se puede entrar con la contraseña
     const [esperando, setEsperando] = useState<boolean>(false);
+    const [telefonoSinHuella, setTelefonoSinHuella] = useState<boolean>(false);
 
     //apenas aparece se pide la huella, sin que haga falta tocar nada
     useEffect(() => {
@@ -30,20 +33,21 @@ export default function PantallaBloqueo() {
 
     async function probarHuella(): Promise<void> {
         setMensaje(null);
-        setEsperando(true);
         try {
             const resultado: ResultadoDesbloqueo = await desbloquear();
             if (resultado === "sin_biometria") {
+                setTelefonoSinHuella(true);
                 setConPassword(true);
                 setMensaje("Tu teléfono no tiene huella ni rostro configurados. Ingresá tu contraseña.");
+            } else if (resultado === "cancelado") {
+                setConPassword(true);
             } else if (resultado === "fallo") {
-                setMensaje("No pudimos reconocerte. Probá de nuevo o usá tu contraseña.");
+                setConPassword(true);
+                setMensaje("No pudimos reconocerte. Ingresá tu contraseña o probá de nuevo con la huella.");
             }
         } catch (e) {
             setConPassword(true);
             setMensaje("No pudimos usar la huella. Ingresá tu contraseña.");
-        } finally {
-            setEsperando(false);
         }
     }
 
@@ -90,7 +94,7 @@ export default function PantallaBloqueo() {
                         </TouchableOpacity>
                     </>
                 ) : (
-                    <TouchableOpacity style={styles.botonPrimario} onPress={probarHuella} disabled={esperando}>
+                    <TouchableOpacity style={styles.botonPrimario} onPress={probarHuella}>
                         <Ionicons name="finger-print-outline" size={20} color="#fff" />
                         <Text style={styles.textoBotonPrimario}>Desbloquear</Text>
                     </TouchableOpacity>
@@ -102,6 +106,11 @@ export default function PantallaBloqueo() {
                 {!conPassword && (
                     <TouchableOpacity onPress={() => setConPassword(true)}>
                         <Text style={styles.enlace}>Usar mi contraseña</Text>
+                    </TouchableOpacity>
+                )}
+                {conPassword && !telefonoSinHuella && (
+                    <TouchableOpacity onPress={probarHuella} disabled={esperando}>
+                        <Text style={styles.enlace}>Probar con la huella</Text>
                     </TouchableOpacity>
                 )}
                 <TouchableOpacity onPress={seguirSinIngresar} disabled={esperando}>
