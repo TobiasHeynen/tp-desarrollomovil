@@ -1,3 +1,4 @@
+import Storage from "expo-sqlite/kv-store";
 import { Usuario, ErrorApi } from "../tipos";
 import { USUARIOS, CONTRASENIAS } from "../mocks/usuarios";
 
@@ -7,6 +8,40 @@ import { USUARIOS, CONTRASENIAS } from "../mocks/usuarios";
 
 function demorar<T>(valor: T, ms = 500): Promise<T> {
     return new Promise((resolve) => setTimeout(() => resolve(valor), ms));
+}
+
+//SOLO PARA EL MOCK: el mock vive en memoria y se borra al cerrar la app, entonces una cuenta
+//creada desde "Crear cuenta" desaparecia y despues no se podia volver a entrar con ella.
+//Para simular que el servidor recuerda las cuentas, se guardan en el telefono.
+//Cuando llegue la API real esto se borra (las cuentas las guarda el servidor).
+const CLAVE_REGISTRADOS: string = "mock:usuariosRegistrados";
+
+interface CuentaRegistrada {
+    usuario: Usuario;
+    password: string;
+}
+
+function leerRegistrados(): CuentaRegistrada[] {
+    try {
+        const crudo: string | null = Storage.getItemSync(CLAVE_REGISTRADOS);
+        return crudo ? (JSON.parse(crudo) as CuentaRegistrada[]) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+//al cargar el servicio se suman al mock las cuentas creadas en usos anteriores
+for (const cuenta of leerRegistrados()) {
+    if (!USUARIOS.some((u) => u.id === cuenta.usuario.id)) {
+        USUARIOS.push(cuenta.usuario);
+        CONTRASENIAS[cuenta.usuario.id] = cuenta.password;
+    }
+}
+
+function guardarRegistrado(usuario: Usuario, password: string): void {
+    const cuentas: CuentaRegistrada[] = leerRegistrados();
+    cuentas.push({ usuario: usuario, password: password });
+    Storage.setItemSync(CLAVE_REGISTRADOS, JSON.stringify(cuentas));
 }
 
 const PREFIJO_TOKEN: string = "token-mock-";
@@ -66,25 +101,18 @@ export async function registrarUsuario(datos: DatosRegistro): Promise<RespuestaS
     };
     USUARIOS.push(nuevo);
     CONTRASENIAS[nuevo.id] = datos.password;
+    guardarRegistrado(nuevo, datos.password);
     return demorar({ usuario: nuevo, token: PREFIJO_TOKEN + nuevo.id });
 }
 
 //devuelve el usuario dueño del token (con la API real seria un GET con "Authorization: Bearer <token>")
 //sirve para traer los datos actualizados al volver a abrir la app
-export async function obtenerUsuarioActual(token: string, guardado: Usuario | null): Promise<Usuario> {
+export async function obtenerUsuarioActual(token: string): Promise<Usuario> {
     if (!token.startsWith(PREFIJO_TOKEN)) {
         throw new ErrorApi("SESION_INVALIDA", "Tu sesión venció. Ingresá de nuevo.");
     }
     const id: string = token.slice(PREFIJO_TOKEN.length);
-    let usuario: Usuario | undefined = USUARIOS.find((u) => u.id === id);
-
-    //el mock vive en memoria y se borra al cerrar la app: si la cuenta se creo en una
-    //ejecucion anterior, se vuelve a cargar con los datos guardados en el telefono
-    //(con la API real esto no hace falta porque el servidor recuerda a los usuarios)
-    if (!usuario && guardado && guardado.id === id) {
-        usuario = guardado;
-        USUARIOS.push(guardado);
-    }
+    const usuario: Usuario | undefined = USUARIOS.find((u) => u.id === id);
 
     if (!usuario) {
         throw new ErrorApi("SESION_INVALIDA", "Tu sesión venció. Ingresá de nuevo.");

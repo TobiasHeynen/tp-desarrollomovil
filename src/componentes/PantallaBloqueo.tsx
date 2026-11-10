@@ -17,7 +17,7 @@ import { useAuth, ResultadoDesbloqueo } from "../contextos/AuthContext";
 //primero prueba con huella/rostro; si el telefono no tiene, pide la contraseña
 
 export default function PantallaBloqueo() {
-    const { usuarioBloqueado, desbloquear, desbloquearConPassword, cerrarSesion } = useAuth();
+    const { usuarioBloqueado, desbloquear, desbloquearConPassword, seguirSinIngresar, cerrarSesion } = useAuth();
     const [conPassword, setConPassword] = useState<boolean>(false);
     const [password, setPassword] = useState<string>("");
     const [mensaje, setMensaje] = useState<string | null>(null);
@@ -104,6 +104,9 @@ export default function PantallaBloqueo() {
                         <Text style={styles.enlace}>Usar mi contraseña</Text>
                     </TouchableOpacity>
                 )}
+                <TouchableOpacity onPress={seguirSinIngresar} disabled={esperando}>
+                    <Text style={styles.enlace}>Seguir sin ingresar</Text>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={cerrarSesion}>
                     <Text style={styles.enlace}>No soy yo, cerrar sesión</Text>
                 </TouchableOpacity>

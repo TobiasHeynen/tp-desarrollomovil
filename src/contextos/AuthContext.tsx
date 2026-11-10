@@ -40,6 +40,7 @@ interface AuthContextValor {
     cerrarSesion: () => Promise<void>;
     desbloquear: () => Promise<ResultadoDesbloqueo>;
     desbloquearConPassword: (password: string) => Promise<void>;
+    seguirSinIngresar: () => void;
     refrescarUsuario: () => Promise<void>;
     cambiarPedirHuella: (valor: boolean) => void;
 }
@@ -92,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUsuario(guardado);
         setPendiente(null);
 
-        obtenerUsuarioActual(t, guardado)
+        obtenerUsuarioActual(t)
             .then((actualizado) => {
                 setUsuario(actualizado);
                 guardarUsuario(actualizado);
@@ -141,10 +142,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await iniciarSesion(respuesta.usuario, respuesta.token);
     }
 
+    //cierra la pantalla de bloqueo sin abrir la sesion: se puede mirar la app como invitado
+    //(el PRD pide no exigir cuenta para ver disponibilidad). La sesion queda guardada,
+    //asi que se puede volver a entrar desde "Ingresar" o la proxima vez que se abra la app
+    function seguirSinIngresar(): void {
+        setPendiente(null);
+    }
+
     async function refrescarUsuario(): Promise<void> {
         if (!token || !usuario) return;
         try {
-            const actualizado: Usuario = await obtenerUsuarioActual(token, usuario);
+            const actualizado: Usuario = await obtenerUsuarioActual(token);
             //copia nueva para que React redibuje aunque el mock devuelva el mismo objeto
             setUsuario({ ...actualizado, espaciosFavoritos: [...actualizado.espaciosFavoritos] });
             guardarUsuario(actualizado);
@@ -171,6 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 cerrarSesion,
                 desbloquear,
                 desbloquearConPassword,
+                seguirSinIngresar,
                 refrescarUsuario,
                 cambiarPedirHuella,
             }}
