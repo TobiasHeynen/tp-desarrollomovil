@@ -1,43 +1,136 @@
 import { useState } from "react";
-import { View, TextInput, Button, Text, StyleSheet } from "react-native";
+import {
+    View,
+    Text,
+    TextInput,
+    StyleSheet,
+    TouchableOpacity,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    ScrollView,
+    Platform,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { iniciarSesion as iniciarSesionServicio } from "../../src/servicios/auth";
+import { iniciarSesion as iniciarSesionServicio, esEmailValido } from "../../src/servicios/auth";
 import { useAuth } from "../../src/contextos/AuthContext";
 
-// PERSONA A — Autenticación.
-// TODO: validaciones de formulario, mostrar error de "CREDENCIALES_INVALIDAS",
-// y guardar el token en expo-secure-store desde AuthContext.iniciarSesion.
+//TOBIAS - ingreso con email y contraseña
+//al entrar vuelve a la pantalla desde donde se vino (por ejemplo la grilla, para terminar de reservar)
 
 export default function Login() {
-  const router = useRouter();
-  const { iniciarSesion } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
+    const { iniciarSesion } = useAuth();
+    const [email, setEmail] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [error, setError] = useState<string | null>(null);
+    const [enviando, setEnviando] = useState<boolean>(false);
 
-  async function manejarLogin() {
-    try {
-      const { usuario, token } = await iniciarSesionServicio(email, password);
-      iniciarSesion(usuario, token);
-      router.replace("/(tabs)");
-    } catch (e: any) {
-      setError(e.message ?? "No pudimos iniciar sesión.");
+    function validar(): string | null {
+        if (!esEmailValido(email)) return "Escribí un email válido.";
+        if (password === "") return "Escribí tu contraseña.";
+        return null;
     }
-  }
 
-  return (
-    <View style={styles.contenedor}>
-      <TextInput style={styles.input} placeholder="Email" autoCapitalize="none" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="Contraseña" secureTextEntry value={password} onChangeText={setPassword} />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <Button title="Ingresar" onPress={manejarLogin} />
-      <Button title="Crear cuenta" onPress={() => router.push("/(auth)/registro")} />
-    </View>
-  );
+    //vuelve a donde estaba la persona, o al listado de espacios si el login era la primera pantalla
+    function seguirSinCuenta(): void {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace("/(tabs)");
+        }
+    }
+
+    async function manejarLogin(): Promise<void> {
+        const problema: string | null = validar();
+        if (problema) {
+            setError(problema);
+            return;
+        }
+
+        setError(null);
+        setEnviando(true);
+        try {
+            const { usuario, token } = await iniciarSesionServicio(email, password);
+            await iniciarSesion(usuario, token);
+            if (router.canGoBack()) {
+                router.back();
+            } else {
+                router.replace("/(tabs)");
+            }
+        } catch (e: any) {
+            setError(e.message ?? "No pudimos iniciar sesión.");
+        } finally {
+            setEnviando(false);
+        }
+    }
+
+    return (
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <ScrollView contentContainerStyle={styles.contenedor} keyboardShouldPersistTaps="handled">
+                <Text style={styles.titulo}>Reservas Deportivas</Text>
+                <Text style={styles.subtitulo}>Ingresá para reservar turnos y ver tus reservas.</Text>
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    placeholderTextColor="#888"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    value={email}
+                    onChangeText={setEmail}
+                    editable={!enviando}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Contraseña"
+                    placeholderTextColor="#888"
+                    secureTextEntry
+                    autoComplete="password"
+                    value={password}
+                    onChangeText={setPassword}
+                    onSubmitEditing={manejarLogin}
+                    editable={!enviando}
+                />
+
+                {error && <Text style={styles.error}>{error}</Text>}
+
+                <TouchableOpacity style={styles.botonPrimario} onPress={manejarLogin} disabled={enviando}>
+                    {enviando ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.textoBotonPrimario}>Ingresar</Text>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.botonSecundario}
+                    onPress={() => router.push("/(auth)/registro")}
+                    disabled={enviando}
+                >
+                    <Text style={styles.textoBotonSecundario}>No tengo cuenta, crear una</Text>
+                </TouchableOpacity>
+
+                {/* el PRD pide no exigir cuenta para mirar espacios y disponibilidad */}
+                <TouchableOpacity style={styles.botonSecundario} onPress={seguirSinCuenta} disabled={enviando}>
+                    <Text style={styles.textoSinCuenta}>Seguir sin cuenta</Text>
+                </TouchableOpacity>
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
 }
 
 const styles = StyleSheet.create({
-  contenedor: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 12 },
-  error: { color: "#B00020" },
+    flex: { flex: 1 },
+    contenedor: { flexGrow: 1, justifyContent: "center", padding: 24, gap: 12 },
+    titulo: { fontSize: 24, fontWeight: "700", color: "#1B5E20", textAlign: "center" },
+    subtitulo: { color: "#666", textAlign: "center", marginBottom: 8 },
+    input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 12, color: "#222", backgroundColor: "#fff" },
+    error: { color: "#B00020" },
+    botonPrimario: { backgroundColor: "#2E7D32", paddingVertical: 14, borderRadius: 10, alignItems: "center" },
+    textoBotonPrimario: { color: "#fff", fontWeight: "700", fontSize: 15 },
+    botonSecundario: { paddingVertical: 10, alignItems: "center" },
+    textoBotonSecundario: { color: "#2E7D32", fontWeight: "600" },
+    textoSinCuenta: { color: "#666", fontWeight: "600" },
 });

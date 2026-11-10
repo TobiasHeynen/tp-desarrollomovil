@@ -8,16 +8,17 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#2E7D32"
-    },
     "android": {
       "package": "ar.gob.villaguay.reservasdeportivas",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2E7D32"
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "CAMERA"
+        "CAMERA",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
       ]
     },
     "ios": {
@@ -30,9 +31,24 @@
       "expo-font",
       "expo-video",
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#2E7D32"
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Usamos la cámara para escanear el QR de ingreso de las reservas."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Usamos tus fotos para subir el estado de una cancha."
         }
       ],
       [
@@ -47,7 +63,14 @@
           "locationWhenInUsePermission": "Usamos tu ubicacion para mostrarte el complejo deportivo mas cercano en el mapa."
         }
       ],
-      "expo-sqlite"
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Usamos Face ID para que vuelvas a entrar a tu cuenta sin escribir la contraseña."
+        }
+      ],
+      "expo-sqlite",
+      "expo-secure-store"
     ]
   }
 }

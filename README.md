@@ -8,16 +8,12 @@ Deportes de Villaguay.
 
 ```bash
 npm install
-
-# Agregar las capacidades del dispositivo con expo install (resuelve
-# automáticamente la versión correcta para el SDK del proyecto):
-npx expo install expo-camera expo-image-picker expo-location react-native-maps \
-  expo-notifications expo-sqlite expo-secure-store expo-local-authentication \
-  expo-haptics expo-sensors expo-file-system expo-video expo-audio expo-network \
-  @react-native-vector-icons/ionicons
-
 npm start
 ```
+
+Todas las capacidades del dispositivo ya están en `package.json`. Si hace
+falta agregar otra, usar `npx expo install <paquete>` (elige la versión que
+corresponde al SDK del proyecto).
 
 **Ojo con la documentación vieja** (aclarado en el PRD): `expo-av` no existe
 más (es `expo-audio` + `expo-video`), la API vieja de `expo-file-system` tira
@@ -49,11 +45,26 @@ La regla de oro del PRD: **ninguna pantalla importa un mock directamente**,
 todo pasa por `src/servicios/`. Cuando se publique la API real, solo
 se edita el cuerpo de esas funciones.
 
-## Iniciar sesión (cualquier contraseña sirve, el mock no la valida): usá alguno de estos emails de prueba:
+## Iniciar sesión
 
-emiliano@mail.com → rol jugador
-marcelo@villaguay.gob.ar → rol encargado
-nahuel@villaguay.gob.ar → rol administrador
+Cuentas de prueba (la contraseña de las tres es `1234`):
+
+- emiliano@mail.com → rol jugador
+- marcelo@villaguay.gob.ar → rol encargado
+- nahuel@villaguay.gob.ar → rol administrador
+
+También se puede crear una cuenta nueva desde "Crear cuenta" (siempre
+queda con rol jugador).
+
+Cómo funciona la sesión:
+
+- Mirar espacios y disponibilidad no pide cuenta; se pide recién al reservar.
+- El token se guarda en `expo-secure-store` y los datos del usuario y las
+  preferencias en `expo-sqlite/kv-store`, así que la sesión sigue después
+  de cerrar la app.
+- Al volver a abrir la app se pide huella o rostro
+  (`expo-local-authentication`). Si el teléfono no tiene, se pide la
+  contraseña. Se puede desactivar desde Perfil.
 
 ## 3. División sugerida
 
@@ -62,10 +73,12 @@ Pensada para que cada quien pueda defender su parte de punta a punta
 
 ### Tobias — Autenticación y perfil
 - `app/(auth)/login.tsx`, `app/(auth)/registro.tsx`, `app/(tabs)/perfil.tsx`
-- `src/contextos/AuthContext.tsx`, `src/servicios/auth.ts`
+- `src/contextos/AuthContext.tsx`, `src/servicios/auth.ts`, `src/servicios/sesion.ts`,
+  `src/componentes/PantallaBloqueo.tsx`
 - Integrar `expo-secure-store` (token) y `expo-local-authentication`
   (reingreso con huella/rostro, con alternativa si el dispositivo no la tiene)
-- Redirección en `app/_layout.tsx` según haya o no sesión
+- `app/_layout.tsx`: pantalla de presentación hasta leer la sesión guardada
+  y bloqueo hasta confirmar la identidad
 
 ### Persona B — Espacios
 - `app/(tabs)/index.tsx` (listado + filtros por deporte/complejo)
@@ -94,9 +107,10 @@ Pensada para que cada quien pueda defender su parte de punta a punta
   `expo-sqlite/kv-store` (preferencias/sesión), `expo-network` (avisar
   estado de la red), protección de rutas `/admin` para roles encargado/admin
 
-Los 10 requisitos mínimos de la consigna (auth, API+servicios, cámara,
-mapas, notificaciones, persistencia offline, sensores/háptica, multimedia,
-ícono/splash) quedan cubiertos entre las 5 partes.
+Los 10 requisitos mínimos de la consigna (pantallas con Expo Router, auth,
+API+servicios, cámara y archivos, mapas, notificaciones, persistencia
+offline, sensores/háptica, multimedia, ícono/splash) quedan cubiertos entre
+las 5 partes. El ícono y la pantalla de presentación están en `assets/`.
 
 ## 4. Huecos del PRD para preguntar a la cátedra o al cliente
 
@@ -108,8 +122,10 @@ propia que conviene confirmar:
    acción "bloquear turnos o días con un motivo". Acá se resolvió marcando
    cada `Turno` afectado con `estado: "mantenimiento"` — falta confirmar si
    el cliente necesita ver el historial de bloqueos por separado.
-2. **Cantidad de personas al reservar**: la pantalla de disponibilidad hoy
-   la hardcodea en 2; falta el modal que la pida (PRD sección 3).
+2. **Cancelar después del límite de 4 horas**: el PRD dice "después hay que
+   avisarnos". Hoy la app deja cancelar igual y suma una cancelación
+   tardía; falta confirmar si en ese caso no debería dejar cancelar desde
+   la app.
 3. **Umbral de "cancelador tardío recurrente"**: el PRD dice "que quede
    marcado" sin definir a partir de cuántas cancelaciones tardías.
 4. **Reservas fijas con excepciones**: ¿qué pasa si el grupo del martes no
@@ -121,7 +137,7 @@ propia que conviene confirmar:
 
 ## 5. Casos feos ya cubiertos en los mocks
 
-src/mocks/` ya incluye los casos que pide explícitamente la consigna:
+`src/mocks/` ya incluye los casos que pide explícitamente la consigna:
 un día entero bloqueado por lluvia (`esp-01`, 2026-09-20), un espacio sin
 video (`esp-02`), una reserva cancelada (`res-1099`), una fija que ocupa
 todos los martes (`fij-07`), y `generarGrillaLlenaMock()` para probar una
