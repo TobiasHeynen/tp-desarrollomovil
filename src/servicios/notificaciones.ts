@@ -12,7 +12,8 @@ const HORAS_ANTES: number = 2;
 //si llega una notificacion con la app abierta, se muestra igual
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
-        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
     }),

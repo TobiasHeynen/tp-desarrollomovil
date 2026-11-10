@@ -1,41 +1,142 @@
 import { useState } from "react";
-import { View, TextInput, Button, Text, StyleSheet } from "react-native";
+import {
+    Text,
+    TextInput,
+    StyleSheet,
+    TouchableOpacity,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    ScrollView,
+    Platform,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { registrarUsuario } from "../../src/servicios/auth";
+import { registrarUsuario, esEmailValido, LARGO_MINIMO_PASSWORD } from "../../src/servicios/auth";
 import { useAuth } from "../../src/contextos/AuthContext";
 
-// PERSONA A — Autenticación.
+//TOBIAS - registro de una cuenta nueva (siempre con rol jugador)
+//los encargados y administradores los da de alta la municipalidad, no se registran desde la app
+
 export default function Registro() {
-  const router = useRouter();
-  const { iniciarSesion } = useAuth();
-  const [nombre, setNombre] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
+    const { iniciarSesion } = useAuth();
+    const [nombre, setNombre] = useState<string>("");
+    const [email, setEmail] = useState<string>("");
+    const [telefono, setTelefono] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [repetir, setRepetir] = useState<string>("");
+    const [error, setError] = useState<string | null>(null);
+    const [enviando, setEnviando] = useState<boolean>(false);
 
-  async function manejarRegistro() {
-    try {
-      const { usuario, token } = await registrarUsuario({ nombre, email, telefono });
-      iniciarSesion(usuario, token);
-      router.replace("/(tabs)");
-    } catch (e: any) {
-      setError(e.message ?? "No pudimos crear la cuenta.");
+    function validar(): string | null {
+        if (nombre.trim().length < 2) return "Escribí tu nombre.";
+        if (!esEmailValido(email)) return "Escribí un email válido.";
+        //el telefono sirve para que la Direccion de Deportes pueda avisar si se suspende un turno
+        if (telefono.replace(/\D/g, "").length < 8) return "Escribí un teléfono válido, con característica.";
+        if (password.length < LARGO_MINIMO_PASSWORD) {
+            return `La contraseña tiene que tener al menos ${LARGO_MINIMO_PASSWORD} caracteres.`;
+        }
+        if (password !== repetir) return "Las contraseñas no coinciden.";
+        return null;
     }
-  }
 
-  return (
-    <View style={styles.contenedor}>
-      <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
-      <TextInput style={styles.input} placeholder="Email" autoCapitalize="none" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="Teléfono" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <Button title="Crear cuenta" onPress={manejarRegistro} />
-    </View>
-  );
+    async function manejarRegistro(): Promise<void> {
+        const problema: string | null = validar();
+        if (problema) {
+            setError(problema);
+            return;
+        }
+
+        setError(null);
+        setEnviando(true);
+        try {
+            const { usuario, token } = await registrarUsuario({ nombre, email, telefono, password });
+            await iniciarSesion(usuario, token);
+            //se cierran registro y login juntos y se vuelve a donde estaba la persona
+            if (router.canDismiss()) {
+                router.dismiss(2);
+            } else {
+                router.replace("/(tabs)");
+            }
+        } catch (e: any) {
+            setError(e.message ?? "No pudimos crear la cuenta.");
+        } finally {
+            setEnviando(false);
+        }
+    }
+
+    return (
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <ScrollView contentContainerStyle={styles.contenedor} keyboardShouldPersistTaps="handled">
+                <TextInput
+                    style={styles.input}
+                    placeholder="Nombre y apellido"
+                    placeholderTextColor="#888"
+                    autoComplete="name"
+                    value={nombre}
+                    onChangeText={setNombre}
+                    editable={!enviando}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    placeholderTextColor="#888"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    value={email}
+                    onChangeText={setEmail}
+                    editable={!enviando}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Teléfono (ej. 3455-401122)"
+                    placeholderTextColor="#888"
+                    keyboardType="phone-pad"
+                    autoComplete="tel"
+                    value={telefono}
+                    onChangeText={setTelefono}
+                    editable={!enviando}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Contraseña"
+                    placeholderTextColor="#888"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                    editable={!enviando}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Repetí la contraseña"
+                    placeholderTextColor="#888"
+                    secureTextEntry
+                    value={repetir}
+                    onChangeText={setRepetir}
+                    onSubmitEditing={manejarRegistro}
+                    editable={!enviando}
+                />
+
+                {error && <Text style={styles.error}>{error}</Text>}
+
+                <TouchableOpacity style={styles.botonPrimario} onPress={manejarRegistro} disabled={enviando}>
+                    {enviando ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.textoBotonPrimario}>Crear cuenta</Text>
+                    )}
+                </TouchableOpacity>
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
 }
 
 const styles = StyleSheet.create({
-  contenedor: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 12 },
-  error: { color: "#B00020" },
+    flex: { flex: 1 },
+    contenedor: { flexGrow: 1, justifyContent: "center", padding: 24, gap: 12 },
+    input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 12, color: "#222", backgroundColor: "#fff" },
+    error: { color: "#B00020" },
+    botonPrimario: { backgroundColor: "#2E7D32", paddingVertical: 14, borderRadius: 10, alignItems: "center" },
+    textoBotonPrimario: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });

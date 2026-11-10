@@ -32,3 +32,12 @@ export const USUARIOS: Usuario[] = [
     ausencias: 0,
   },
 ];
+
+// Contraseñas de prueba (usuarioId -> contraseña). Van aparte porque el
+// tipo Usuario del PRD no tiene contraseña: la valida el servidor y nunca
+// viaja de vuelta a la app.
+export const CONTRASENIAS: Record<string, string> = {
+  "usr-207": "1234",
+  "usr-300": "1234",
+  "usr-001": "1234",
+};
