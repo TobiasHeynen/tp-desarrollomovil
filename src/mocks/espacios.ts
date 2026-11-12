@@ -31,7 +31,7 @@ export const ESPACIOS: Espacio[] = [
     capacidad: 10,
     precioPorHora: 12000,
     coordenadas: { latitud: -31.8643, longitud: -59.0443 },
-    imagenes: ["https://placehold.co/600x400.png?text=CanchaDibuMartinez"],
+    imagenes: ["https://res.cloudinary.com/t1lqeqpb/image/upload/v1794174614/FUTBOL12.png"],
     // Caso feo pedido en el PRD: un espacio sin video.
     videoUrl: null,
     reglas: "No se permite calzado con tapones de aluminio o tapones altos.Solo ingreso de agua.Respetar el maximo de jugadores.Respetar la puntualidad.Sin mascotas",
