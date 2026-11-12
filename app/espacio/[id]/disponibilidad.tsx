@@ -71,11 +71,14 @@ export default function Disponibilidad() {
   const [simularLlena, setSimularLlena] = useState(false);
   const [simularErrorRed, setSimularErrorRed] = useState(false);
 
-  // Estado del Modal de confirmación de reserva
+  // Estado del Modal de confirmación de reserva y de aviso de login
   const [turnoSeleccionado, setTurnoSeleccionado] = useState<Turno | null>(null);
+  const [turnoPendienteLogin, setTurnoPendienteLogin] = useState<Turno | null>(null);
+  const [mostrarModalLogin, setMostrarModalLogin] = useState(false);
   const [deporteElegido, setDeporteElegido] = useState<string>("");
   const [cantidadPersonas, setCantidadPersonas] = useState<number>(2);
   const [guardandoReserva, setGuardandoReserva] = useState(false);
+  const [errorModalReserva, setErrorModalReserva] = useState<string | null>(null);
 
   // Cargar datos del espacio y deportes al montar
   useEffect(() => {
@@ -117,17 +120,26 @@ export default function Disponibilidad() {
     cargarDisponibilidad();
   }, [id, diaActual?.fecha, simularLlena, simularErrorRed]);
 
-  // Al tocar un turno libre: verificar sesión y abrir el modal
+  // Si el usuario fue a iniciar sesión desde un turno libre y volvió logueado,
+  // abrir automáticamente el modal de ese turno
+  useEffect(() => {
+    if (usuario && turnoPendienteLogin) {
+      if (espacio) {
+        setDeporteElegido(espacio.deporteId);
+        setCantidadPersonas(Math.min(espacio.capacidad, 4));
+      }
+      setErrorModalReserva(null);
+      setTurnoSeleccionado(turnoPendienteLogin);
+      setTurnoPendienteLogin(null);
+    }
+  }, [usuario, turnoPendienteLogin, espacio]);
+
+  // Al tocar un turno libre: verificar sesión y abrir el modal correspondiente
   function iniciarProcesoReserva(turno: Turno) {
+    setErrorModalReserva(null);
     if (!usuario) {
-      Alert.alert(
-        "Necesitás una cuenta",
-        "La disponibilidad es pública, pero necesitás iniciar sesión para reservar un turno.",
-        [
-          { text: "Ir a iniciar sesión", onPress: () => router.push("/(auth)/login") },
-          { text: "Cancelar", style: "cancel" },
-        ]
-      );
+      setTurnoPendienteLogin(turno);
+      setMostrarModalLogin(true);
       return;
     }
 
@@ -142,6 +154,7 @@ export default function Disponibilidad() {
   async function confirmarReserva() {
     if (!turnoSeleccionado || !usuario) return;
     setGuardandoReserva(true);
+    setErrorModalReserva(null);
     try {
       const reserva = await crearReserva({
         turnoId: turnoSeleccionado.id,
@@ -153,7 +166,9 @@ export default function Disponibilidad() {
       cargarDisponibilidad();
       router.push(`/reserva/${reserva.id}`);
     } catch (e: any) {
-      Alert.alert("No se pudo reservar", e.message ?? "Intentá de nuevo.");
+      const msg = e.message ?? "Intentá de nuevo.";
+      setErrorModalReserva(msg);
+      Alert.alert("No se pudo reservar", msg);
     } finally {
       setGuardandoReserva(false);
     }
@@ -513,6 +528,10 @@ export default function Disponibilidad() {
                   del turno.
                 </Text>
 
+                {errorModalReserva && (
+                  <Text style={styles.tituloError}>{errorModalReserva}</Text>
+                )}
+
                 <View style={styles.modalBotones}>
                   <TouchableOpacity
                     style={styles.botonCancelarModal}
@@ -534,6 +553,47 @@ export default function Disponibilidad() {
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de aviso cuando intenta reservar sin haber iniciado sesión */}
+      <Modal
+        visible={mostrarModalLogin}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMostrarModalLogin(false)}
+      >
+        <View style={styles.modalFondo}>
+          <View style={styles.modalCaja}>
+            <Text style={styles.modalTitulo}>Necesitás una cuenta</Text>
+            <Text style={styles.mensajeEstado}>
+              La disponibilidad es pública y se puede consultar sin cuenta, pero
+              necesitás iniciar sesión para reservar este turno.
+            </Text>
+            <View style={styles.modalBotones}>
+              <TouchableOpacity
+                style={styles.botonCancelarModal}
+                onPress={() => {
+                  setMostrarModalLogin(false);
+                  setTurnoPendienteLogin(null);
+                }}
+              >
+                <Text style={styles.textoCancelarModal}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.botonConfirmarModal}
+                onPress={() => {
+                  setMostrarModalLogin(false);
+                  router.push("/(auth)/login");
+                }}
+              >
+                <Text style={styles.textoConfirmarModal}>
+                  Ir a iniciar sesión
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

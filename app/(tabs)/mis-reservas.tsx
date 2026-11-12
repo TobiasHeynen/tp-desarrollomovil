@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Modal,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import {
@@ -58,6 +59,7 @@ export default function MisReservas() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelandoId, setCancelandoId] = useState<string | null>(null);
+  const [reservaACancelar, setReservaACancelar] = useState<Reserva | null>(null);
 
   const cargarDatos = useCallback(
     (simularErrorRed = false) => {
@@ -99,28 +101,12 @@ export default function MisReservas() {
   }, [cargarDatos]);
 
   function pedirConfirmacionCancelacion(reserva: Reserva) {
-    const tardia = esCancelacionTardia(reserva.cancelableHasta);
-    const titulo = tardia
-      ? "⚠️ Cancelación con menos de 4 horas"
-      : "Cancelar reserva";
-    const mensaje = tardia
-      ? "Ya pasó el límite de 4 horas previas al turno. Si cancelás ahora, se registrará una cancelación tardía en tu perfil y tenés que avisar a la Dirección de Deportes."
-      : `Podés cancelar sin aviso hasta el ${formatearHoraLimite(
-          reserva.cancelableHasta
-        )}. ¿Querés cancelar este turno?`;
-
-    Alert.alert(titulo, mensaje, [
-      { text: "No, mantener turno", style: "cancel" },
-      {
-        text: tardia ? "Cancelar igual y registrar" : "Sí, cancelar reserva",
-        style: "destructive",
-        onPress: () => ejecutarCancelacion(reserva.id, tardia),
-      },
-    ]);
+    setReservaACancelar(reserva);
   }
 
   async function ejecutarCancelacion(reservaId: string, eraTardia: boolean) {
     setCancelandoId(reservaId);
+    setReservaACancelar(null);
     try {
       await cancelarReserva(reservaId);
       cargarDatos(false);
@@ -374,6 +360,54 @@ export default function MisReservas() {
           }}
         />
       )}
+
+      {/* Modal de confirmación para cancelar reserva (regla de las 4 horas) */}
+      <Modal
+        visible={reservaACancelar !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReservaACancelar(null)}
+      >
+        <View style={styles.modalFondo}>
+          <View style={styles.modalCaja}>
+            {reservaACancelar && (() => {
+              const tardia = esCancelacionTardia(reservaACancelar.cancelableHasta);
+              return (
+                <>
+                  <Text style={styles.modalTitulo}>
+                    {tardia ? "⚠️ Cancelación con menos de 4 horas" : "Cancelar reserva"}
+                  </Text>
+                  <Text style={styles.subtituloEstado}>
+                    {tardia
+                      ? "Ya pasó el límite de 4 horas previas al turno. Si cancelás ahora, se registrará una cancelación tardía en tu perfil y tenés que avisar a la Dirección de Deportes."
+                      : `Podés cancelar sin aviso hasta el ${formatearHoraLimite(
+                          reservaACancelar.cancelableHasta
+                        )}. ¿Querés cancelar este turno?`}
+                  </Text>
+                  <View style={styles.botonesTarjeta}>
+                    <TouchableOpacity
+                      style={styles.botonDetallePasada}
+                      onPress={() => setReservaACancelar(null)}
+                    >
+                      <Text style={styles.textoDetallePasada}>No, mantener</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.botonCancelar}
+                      onPress={() =>
+                        ejecutarCancelacion(reservaACancelar.id, tardia)
+                      }
+                    >
+                      <Text style={styles.textoBotonCancelar}>
+                        {tardia ? "Cancelar y registrar" : "Sí, cancelar"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              );
+            })()}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -517,5 +551,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   textoBotonPrimario: { color: "#FFFFFF", fontWeight: "700", fontSize: 14 },
+  modalFondo: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCaja: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    padding: 20,
+    gap: 14,
+  },
+  modalTitulo: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#222",
+    textAlign: "center",
+  },
 });
 
