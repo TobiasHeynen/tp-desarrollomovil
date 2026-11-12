@@ -22,7 +22,6 @@ puerta.
 
 ## Entrega
 
-- **APK (build de preview con EAS):** _(pegar acá el link del build)_
 - **Código fuente:** este repositorio (incluye `app.json` y `eas.json`, sin `node_modules`).
 
 El APK se genera con:
