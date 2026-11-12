@@ -152,27 +152,3 @@ Los datos de prueba incluyen los casos que pide el PRD: un día entero
 bloqueado por lluvia, una grilla sin turnos libres, un espacio sin video,
 una reserva cancelada, una reserva fija que ocupa todos los martes y un error
 de red simulado.
-
-## Decisiones tomadas sobre huecos del PRD
-
-1. **Bloqueos:** el PRD no define una entidad `Bloqueo`. Se resolvió
-   marcando cada turno afectado con `estado: "mantenimiento"` y un
-   `motivoBloqueo`.
-2. **Cancelar después del límite de cuatro horas:** la app deja cancelar,
-   pero suma una cancelación tardía y avisa que hay que dar aviso a la
-   Dirección de Deportes.
-3. **Marca de cancelador tardío:** el PRD no dice a partir de cuántas
-   cancelaciones; se tomó **2**.
-4. **Cuentas de encargado y administrador:** no se crean desde la app; el
-   registro siempre crea jugadores.
-5. **Reingreso:** se pide huella al volver a abrir la app, pero también se
-   puede seguir como invitado, para respetar que mirar no requiere cuenta.
-
-Quedan para consultar con el cliente: qué pasa si un grupo con reserva fija
-no puede venir una semana puntual, y qué espacios están exactamente en cada
-complejo.
-
-## Fuera del alcance de esta versión
-
-Según el PRD: pagos y señas online, torneos y tablas de posiciones, armado de
-equipos, canchas privadas y alquiler de elementos.
