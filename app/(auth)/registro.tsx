@@ -10,7 +10,12 @@ import {
     Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { registrarUsuario, esEmailValido, LARGO_MINIMO_PASSWORD } from "../../src/servicios/auth";
+import {
+    registrarUsuario,
+    esEmailValido,
+    esTelefonoValido,
+    LARGO_MINIMO_PASSWORD,
+} from "../../src/servicios/auth";
 import { useAuth } from "../../src/contextos/AuthContext";
 
 //TOBIAS - registro de una cuenta nueva (siempre con rol jugador)
@@ -31,7 +36,7 @@ export default function Registro() {
         if (nombre.trim().length < 2) return "Escribí tu nombre.";
         if (!esEmailValido(email)) return "Escribí un email válido.";
         //el telefono sirve para que la Direccion de Deportes pueda avisar si se suspende un turno
-        if (telefono.replace(/\D/g, "").length < 8) return "Escribí un teléfono válido, con característica.";
+        if (!esTelefonoValido(telefono)) return "Escribí un teléfono válido: solo números, espacios o guiones.";
         if (password.length < LARGO_MINIMO_PASSWORD) {
             return `La contraseña tiene que tener al menos ${LARGO_MINIMO_PASSWORD} caracteres.`;
         }

@@ -10,3 +10,6 @@ npm-debug.*
 *.orig.*
 web-build/
 .DS_Store
+# configuracion local de cada uno (la IP de la API cambia segun la computadora)
+.env
+.env.local

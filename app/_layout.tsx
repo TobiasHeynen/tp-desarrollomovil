@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { AuthProvider, useAuth } from "../src/contextos/AuthContext";
 import AvisosWatcher from "../src/componentes/AvisosWatcher";
 import PantallaBloqueo from "../src/componentes/PantallaBloqueo";
+import AvisoSinConexion from "../src/componentes/AvisoSinConexion";
 
 //TOBIAS - layout raiz
 //la pantalla de presentacion queda visible hasta que se termina de leer la sesion guardada
@@ -40,6 +41,7 @@ function Navegacion() {
                 <Stack.Screen name="admin" options={{ headerShown: false }} />
             </Stack>
             {bloqueada && <PantallaBloqueo />}
+            <AvisoSinConexion />
         </>
     );
 }

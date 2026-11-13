@@ -1,13 +1,11 @@
 import { Turno, ErrorApi } from "../tipos";
-import {
-  generarGrillaMock,
-  generarGrillaLlenaMock,
-  BLOQUEOS_MOCK,
-} from "../mocks/turnos";
+import { pedir } from "./api";
+import { conCache } from "./cache";
 
-function demorar<T>(valor: T, ms = 400): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(valor), ms));
-}
+// PERSONA C — Turnos contra la API de la cátedra.
+//   GET /espacios/<id>/turnos?fecha=AAAA-MM-DD
+// La API ya devuelve la grilla resuelta: cruza reservas, reservas fijas y
+// bloqueos, con prioridad mantenimiento > fijo > reservado > libre.
 
 const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const DIAS_LARGOS = [
@@ -88,59 +86,33 @@ export function obtenerProximosDias(cantidad = 7): DiaSeleccionable[] {
   return dias;
 }
 
-/**
- * Asegura que para la semana en curso existan horarios de mantenimiento
- * visibles en los próximos 7 días (ya que el mock original tenía fechas
- * fijas de septiembre), permitiendo demostrar todos los estados en vivo.
- */
-function asegurarBloqueosSemanaActual(espacioId: string, fecha: string): void {
-  const yaTieneBloqueo = BLOQUEOS_MOCK.some(
-    (b) => b.espacioId === espacioId && b.fecha === fecha
-  );
-  if (!yaTieneBloqueo) {
-    BLOQUEOS_MOCK.push({
-      espacioId,
-      fecha,
-      horas: ["16:00", "20:00"],
-      motivo: "Mantenimiento de superficie y luminaria",
-    });
-  }
-}
-
 export interface OpcionesGrilla {
-  simularLlena?: boolean;
+  // Para la demo: pide a la API que responda con error (cabecera X-Simular).
   simularErrorRed?: boolean;
 }
 
 /**
- * Devuelve la grilla de un espacio para un día puntual, ya resuelta
- * (turnos + fijas + bloqueos cruzados). Un turno cuya hora ya pasó
- * (si `fecha` es hoy) se valida en la UI con `esTurnoPasado` para impedir reservarlo.
+ * Devuelve la grilla de un espacio para un día puntual (16 turnos, de 8 a 24),
+ * ya resuelta por la API. Un turno cuya hora ya pasó se valida en la UI con
+ * `esTurnoPasado` para impedir reservarlo. Sin conexión devuelve la última
+ * grilla guardada de ese día.
  */
 export async function obtenerGrilla(
   espacioId: string,
   fecha: string,
   opciones: OpcionesGrilla = {}
 ): Promise<Turno[]> {
-  if (opciones.simularErrorRed) {
-    await demorar(null, 300);
-    throw new ErrorApi(
-      "ERROR_RED",
-      "No pudimos conectar con el servidor. Verificá tu conexión e intentá de nuevo."
-    );
-  }
-
   if (fecha < hoyISO()) {
     throw new ErrorApi("FECHA_INVALIDA", "No se puede consultar un día pasado.");
   }
 
-  asegurarBloqueosSemanaActual(espacioId, fecha);
-
-  if (opciones.simularLlena) {
-    return demorar(generarGrillaLlenaMock(espacioId, fecha));
-  }
-
-  return demorar(generarGrillaMock(espacioId, fecha));
+  return conCache(`grilla:${espacioId}:${fecha}`, async () => {
+    const respuesta = await pedir<Turno[]>(
+      `/espacios/${encodeURIComponent(espacioId)}/turnos?fecha=${fecha}&porPagina=20`,
+      { simular: opciones.simularErrorRed ? "error-500" : undefined }
+    );
+    return respuesta.datos;
+  });
 }
 
 export function esTurnoPasado(fecha: string, inicio: string): boolean {

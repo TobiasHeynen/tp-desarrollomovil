@@ -85,9 +85,10 @@ export default function ListadoEspacios() {
             });
             if (numeroDePedido !== ultimoPedido.current) return;
             setEspacios(respuesta.datos);
-        } catch (e) {
+        } catch (e: any) {
             if (numeroDePedido !== ultimoPedido.current) return;
-            setError("No pudimos cargar los espacios. Probá de nuevo.");
+            //se muestra el mensaje que arma la capa de servicios (sin red, API no configurada, etc.)
+            setError(e?.message ?? "No pudimos cargar los espacios. Probá de nuevo.");
         } finally {
             if (numeroDePedido === ultimoPedido.current) setCargando(false);
         }

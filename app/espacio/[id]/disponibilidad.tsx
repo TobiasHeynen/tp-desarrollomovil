@@ -67,8 +67,8 @@ export default function Disponibilidad() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Opciones para demostrar los "casos feos" exigidos en la defensa oral
-  const [simularLlena, setSimularLlena] = useState(false);
+  // Para demostrar el estado de error: pide a la API que responda con error.
+  // (La grilla sin turnos libres se ve en la base de demo: esp-04 mañana.)
   const [simularErrorRed, setSimularErrorRed] = useState(false);
 
   // Estado del Modal de confirmación de reserva y de aviso de login
@@ -101,10 +101,7 @@ export default function Disponibilidad() {
     if (!id || !diaActual) return;
     setCargando(true);
     setError(null);
-    obtenerGrilla(id, diaActual.fecha, {
-      simularLlena,
-      simularErrorRed,
-    })
+    obtenerGrilla(id, diaActual.fecha, { simularErrorRed })
       .then((datos) => {
         setGrilla(datos);
       })
@@ -118,7 +115,7 @@ export default function Disponibilidad() {
 
   useEffect(() => {
     cargarDisponibilidad();
-  }, [id, diaActual?.fecha, simularLlena, simularErrorRed]);
+  }, [id, diaActual?.fecha, simularErrorRed]);
 
   // Si el usuario fue a iniciar sesión desde un turno libre y volvió logueado,
   // abrir automáticamente el modal de ese turno
@@ -158,8 +155,6 @@ export default function Disponibilidad() {
     try {
       const reserva = await crearReserva({
         turnoId: turnoSeleccionado.id,
-        espacioId: turnoSeleccionado.espacioId,
-        usuarioId: usuario.id,
         cantidadPersonas,
       });
       setTurnoSeleccionado(null);
@@ -285,27 +280,9 @@ export default function Disponibilidad() {
           <Text style={styles.leyendaTexto}>Mantenimiento</Text>
         </View>
 
+        {/* Solo en desarrollo: la API publicada no acepta simular errores */}
+        {__DEV__ && (
         <View style={styles.barraSimulacion}>
-          <TouchableOpacity
-            onPress={() => {
-              setSimularErrorRed(false);
-              setSimularLlena((prev) => !prev);
-            }}
-            style={[
-              styles.botonSimular,
-              simularLlena && styles.botonSimularActivo,
-            ]}
-          >
-            <Text
-              style={[
-                styles.textoSimular,
-                simularLlena && styles.textoSimularActivo,
-              ]}
-            >
-              {simularLlena ? "✓ Grilla llena (activo)" : "Probar grilla llena"}
-            </Text>
-          </TouchableOpacity>
-
           <TouchableOpacity
             onPress={() => setSimularErrorRed((prev) => !prev)}
             style={[
@@ -323,6 +300,7 @@ export default function Disponibilidad() {
             </Text>
           </TouchableOpacity>
         </View>
+        )}
       </View>
 
       {/* Estados de Carga, Error y Vacío (Requisito 3 de la cátedra) */}

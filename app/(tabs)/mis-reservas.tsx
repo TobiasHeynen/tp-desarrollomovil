@@ -104,18 +104,13 @@ export default function MisReservas() {
     setReservaACancelar(reserva);
   }
 
-  async function ejecutarCancelacion(reservaId: string, eraTardia: boolean) {
+  async function ejecutarCancelacion(reservaId: string) {
     setCancelandoId(reservaId);
     setReservaACancelar(null);
     try {
       await cancelarReserva(reservaId);
       cargarDatos(false);
-      Alert.alert(
-        "Reserva cancelada",
-        eraTardia
-          ? "Tu reserva fue cancelada fuera de término. Recordá dar aviso a la Dirección de Deportes."
-          : "El turno quedó liberado correctamente."
-      );
+      Alert.alert("Reserva cancelada", "El turno quedó liberado correctamente.");
     } catch (e: any) {
       Alert.alert("No se pudo cancelar", e.message ?? "Intentá de nuevo.");
     } finally {
@@ -190,12 +185,15 @@ export default function MisReservas() {
             </Text>
           </Text>
 
-          <TouchableOpacity
-            onPress={() => cargarDatos(true)}
-            style={styles.botonProbarError}
-          >
-            <Text style={styles.textoProbarError}>Probar error red</Text>
-          </TouchableOpacity>
+          {/* Solo en desarrollo: la API publicada no acepta simular errores */}
+          {__DEV__ && (
+            <TouchableOpacity
+              onPress={() => cargarDatos(true)}
+              style={styles.botonProbarError}
+            >
+              <Text style={styles.textoProbarError}>Probar error red</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {usuario.cancelacionesTardias > 0 && (
@@ -314,7 +312,7 @@ export default function MisReservas() {
                       ]}
                     >
                       {tardiaAhora
-                        ? "⚠️ Ya dentro de las 4 hs previas: cancelar ahora requiere avisar y suma marca tardía."
+                        ? "⚠️ Faltan menos de 4 horas: ya no se puede cancelar desde la app. Avisale al encargado."
                         : `✓ Se puede cancelar sin aviso hasta el ${formatearHoraLimite(
                             item.cancelableHasta
                           )}`}
@@ -330,17 +328,20 @@ export default function MisReservas() {
                         </Text>
                       </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={styles.botonCancelar}
-                        disabled={cancelandoId === item.id}
-                        onPress={() => pedirConfirmacionCancelacion(item)}
-                      >
-                        <Text style={styles.textoBotonCancelar}>
-                          {cancelandoId === item.id
-                            ? "Cancelando…"
-                            : "Cancelar"}
-                        </Text>
-                      </TouchableOpacity>
+                      {/* PRD: hasta 4 horas antes se cancela sola; después hay que avisar */}
+                      {!tardiaAhora && (
+                        <TouchableOpacity
+                          style={styles.botonCancelar}
+                          disabled={cancelandoId === item.id}
+                          onPress={() => pedirConfirmacionCancelacion(item)}
+                        >
+                          <Text style={styles.textoBotonCancelar}>
+                            {cancelandoId === item.id
+                              ? "Cancelando…"
+                              : "Cancelar"}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </>
                 )}
@@ -371,18 +372,13 @@ export default function MisReservas() {
         <View style={styles.modalFondo}>
           <View style={styles.modalCaja}>
             {reservaACancelar && (() => {
-              const tardia = esCancelacionTardia(reservaACancelar.cancelableHasta);
               return (
                 <>
-                  <Text style={styles.modalTitulo}>
-                    {tardia ? "⚠️ Cancelación con menos de 4 horas" : "Cancelar reserva"}
-                  </Text>
+                  <Text style={styles.modalTitulo}>Cancelar reserva</Text>
                   <Text style={styles.subtituloEstado}>
-                    {tardia
-                      ? "Ya pasó el límite de 4 horas previas al turno. Si cancelás ahora, se registrará una cancelación tardía en tu perfil y tenés que avisar a la Dirección de Deportes."
-                      : `Podés cancelar sin aviso hasta el ${formatearHoraLimite(
-                          reservaACancelar.cancelableHasta
-                        )}. ¿Querés cancelar este turno?`}
+                    {`Podés cancelar sin aviso hasta el ${formatearHoraLimite(
+                      reservaACancelar.cancelableHasta
+                    )}. ¿Querés cancelar este turno?`}
                   </Text>
                   <View style={styles.botonesTarjeta}>
                     <TouchableOpacity
@@ -393,13 +389,9 @@ export default function MisReservas() {
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.botonCancelar}
-                      onPress={() =>
-                        ejecutarCancelacion(reservaACancelar.id, tardia)
-                      }
+                      onPress={() => ejecutarCancelacion(reservaACancelar.id)}
                     >
-                      <Text style={styles.textoBotonCancelar}>
-                        {tardia ? "Cancelar y registrar" : "Sí, cancelar"}
-                      </Text>
+                      <Text style={styles.textoBotonCancelar}>Sí, cancelar</Text>
                     </TouchableOpacity>
                   </View>
                 </>

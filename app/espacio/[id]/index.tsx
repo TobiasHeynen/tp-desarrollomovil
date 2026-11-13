@@ -24,7 +24,7 @@ import { Espacio } from "../../../src/tipos";
 export default function FichaEspacio() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { usuario } = useAuth();
+    const { usuario, refrescarUsuario } = useAuth();
     const { width } = useWindowDimensions();
     const [espacio, setEspacio] = useState<Espacio | null>(null);
     const [cargando, setCargando] = useState<boolean>(true);
@@ -71,8 +71,10 @@ export default function FichaEspacio() {
 
         setGuardandoFavorito(true);
         try {
-            const favoritos: string[] = await alternarFavorito(usuario.id, espacio.id);
-            setEsFavorito(favoritos.includes(espacio.id));
+            await alternarFavorito(espacio.id, esFavorito);
+            setEsFavorito(!esFavorito);
+            //se actualiza el usuario de la sesion (perfil y avisos de turnos liberados usan los favoritos)
+            refrescarUsuario();
         } catch (e: any) {
             Alert.alert("No se pudo guardar", e.message ?? "Intentá de nuevo.");
         } finally {
