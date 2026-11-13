@@ -143,11 +143,6 @@ src/
 assets/                  Ícono y pantalla de presentación
 ```
 
-**Ninguna pantalla importa los datos de prueba directamente**: todo pasa por
-`src/servicios/`, y todas las funciones son asíncronas. Cuando la cátedra
-publique la API, solo cambia el cuerpo de esas funciones (por un `fetch` con
-`Authorization: Bearer <token>`); los tipos y las pantallas quedan iguales.
-
 Los datos de prueba incluyen los casos que pide el PRD: un día entero
 bloqueado por lluvia, una grilla sin turnos libres, un espacio sin video,
 una reserva cancelada, una reserva fija que ocupa todos los martes y un error
