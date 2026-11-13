@@ -6,7 +6,8 @@ import { revisarAvisos } from "../servicios/avisos";
 //PERSONA D - componente sin pantalla
 //mientras haya sesion revisa los avisos al iniciar, cada 30 segundos y cuando la app vuelve al frente
 
-const CADA_MS: number = 30 * 1000;
+//cada minuto: cada revision hace varios pedidos a la API (una grilla por favorito y por dia)
+const CADA_MS: number = 60 * 1000;
 
 export default function AvisosWatcher() {
     const { usuario } = useAuth();

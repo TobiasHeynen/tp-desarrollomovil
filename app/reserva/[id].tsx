@@ -11,6 +11,8 @@ import {
     ResultadoRecordatorio,
 } from "../../src/servicios/notificaciones";
 import { leerTurnoId, DatosTurno } from "../../src/utilidades/turnoId";
+import { esErrorDeRed } from "../../src/servicios/api";
+import { esCancelacionTardia } from "../../src/servicios/reservas";
 import { Reserva, Espacio, ErrorApi } from "../../src/tipos";
 
 //PERSONA D - ingreso el dia del turno + notificaciones
@@ -98,10 +100,11 @@ export default function DetalleReserva() {
             setCargando(false);
             await prepararRecordatorio(r, espacioCargado?.nombre);
         } catch (e: any) {
-            if (e instanceof ErrorApi) {
-                //la API dice que la reserva no existe: no tiene sentido mostrar una copia
+            if (e instanceof ErrorApi && !esErrorDeRed(e)) {
+                //la API dice que la reserva no existe (o no es tuya): no tiene sentido mostrar una copia
                 setError(e.message);
             } else {
+                //sin señal: se muestra la copia guardada en el telefono
                 await usarCopiaLocal(reservaId);
             }
         } finally {
@@ -188,7 +191,12 @@ export default function DetalleReserva() {
 
             <View style={{ height: 24 }} />
             <Button title="Cómo llegar" onPress={comoLlegar} disabled={!espacio} />
-            {vigente && (
+            {vigente && esCancelacionTardia(reserva.cancelableHasta) && (
+                <Text style={styles.aviso}>
+                    Faltan menos de 4 horas: para cancelar avisale al encargado.
+                </Text>
+            )}
+            {vigente && !esCancelacionTardia(reserva.cancelableHasta) && (
                 <>
                     <View style={{ height: 8 }} />
                     <Button

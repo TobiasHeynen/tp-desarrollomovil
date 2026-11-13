@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Usuario, ErrorApi } from "../tipos";
 import { obtenerUsuarioActual, iniciarSesion as iniciarSesionServicio } from "../servicios/auth";
+import { usarToken } from "../servicios/api";
 import {
     guardarToken,
     leerToken,
@@ -21,6 +22,11 @@ import {
 //sin sesion la app se puede usar igual para mirar (el PRD pide no exigir cuenta para ver disponibilidad)
 
 export type ResultadoDesbloqueo = ResultadoHuella | "sin_biometria";
+
+//la API responde NO_AUTENTICADO cuando el token vencio (dura 30 dias) o la cuenta ya no existe
+function sesionVencida(e: unknown): boolean {
+    return e instanceof ErrorApi && e.codigo === "NO_AUTENTICADO";
+}
 
 interface SesionPendiente {
     token: string;
@@ -89,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     //deja la sesion abierta con lo guardado y despues trae los datos actualizados
     //si no hay conexion se sigue con los datos guardados (el PRD pide que la app funcione sin señal)
     function abrirSesion(t: string, guardado: Usuario): void {
+        usarToken(t);
         setToken(t);
         setUsuario(guardado);
         setPendiente(null);
@@ -99,21 +106,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 guardarUsuario(actualizado);
             })
             .catch((e) => {
-                if (e instanceof ErrorApi && e.codigo === "SESION_INVALIDA") {
-                    cerrarSesion();
-                }
+                //sin conexion se sigue con lo guardado; solo se cierra si la API dice que el token no sirve
+                if (sesionVencida(e)) cerrarSesion();
             });
     }
 
     async function iniciarSesion(u: Usuario, t: string): Promise<void> {
         await guardarToken(t);
         guardarUsuario(u);
+        usarToken(t);
         setToken(t);
         setUsuario(u);
         setPendiente(null);
     }
 
     async function cerrarSesion(): Promise<void> {
+        usarToken(null);
         setUsuario(null);
         setToken(null);
         setPendiente(null);
@@ -153,11 +161,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!token || !usuario) return;
         try {
             const actualizado: Usuario = await obtenerUsuarioActual(token);
-            //copia nueva para que React redibuje aunque el mock devuelva el mismo objeto
-            setUsuario({ ...actualizado, espaciosFavoritos: [...actualizado.espaciosFavoritos] });
+            setUsuario(actualizado);
             guardarUsuario(actualizado);
         } catch (e) {
-            if (e instanceof ErrorApi && e.codigo === "SESION_INVALIDA") await cerrarSesion();
+            if (sesionVencida(e)) await cerrarSesion();
         }
     }
 

@@ -1,15 +1,15 @@
 import Storage from "expo-sqlite/kv-store";
 import { Usuario, Turno, Reserva } from "../tipos";
-import { listarMisReservas, obtenerReserva } from "./reservas";
+import { listarMisReservas, obtenerReserva, canceladasPorMi } from "./reservas";
 import { obtenerGrilla, esTurnoPasado } from "./turnos";
 import { obtenerEspacio } from "./espacios";
 import { avisarSuspension, avisarTurnoLiberado, cancelarRecordatorio } from "./notificaciones";
 import { inicioDelTurno, leerTurnoId, DatosTurno } from "../utilidades/turnoId";
 
 //PERSONA D - detecta los hechos que disparan avisos y los notifica
-//la app solo tiene notificaciones locales (sin push), asi que mira los datos cada tanto:
+//la app usa notificaciones locales (la parte de push de la API la tiene que programar cada grupo
+//en el servidor), asi que mira los datos de la API cada tanto:
 //si el encargado bloqueo un turno que reservaste, o si se libero un turno de un favorito, avisa una sola vez
-//con una API real con push, esta revision la haria el servidor
 
 const DIAS_A_REVISAR: number = 7;
 let revisando: boolean = false; //evita dos revisiones a la vez (y avisos dobles)
@@ -42,32 +42,50 @@ function leerOcupados(clave: string): Record<string, string> | null {
     }
 }
 
-//1) suspension: una reserva mia cuyo turno ahora figura en "mantenimiento"
+//1) suspension: cuando el encargado bloquea un turno, la API cancela las reservas de ese turno
+//se compara la lista de reservas proximas con la de la vez anterior: si una desaparecio porque
+//quedo cancelada, y no la cancelo la propia persona, es que se suspendio
 async function revisarSuspensiones(usuario: Usuario): Promise<void> {
+    const clave: string = `avisos:proximas:${usuario.id}`;
+    let anteriores: string[] | null = null;
+    try {
+        const crudo: string | null = Storage.getItemSync(clave);
+        anteriores = crudo ? JSON.parse(crudo) : null;
+    } catch (e) {
+        anteriores = null;
+    }
+
     const { proximas } = await listarMisReservas(usuario.id);
+    const idsAhora: string[] = proximas.map((r) => r.id);
 
-    for (const reserva of proximas) {
-        const datos: DatosTurno | null = leerTurnoId(reserva.turnoId);
-        const inicio: Date | null = inicioDelTurno(reserva.turnoId);
-        if (!datos || !inicio || inicio.getTime() < Date.now()) continue;
+    //la primera vez solo se guarda lo que hay, no hay con que comparar
+    if (anteriores) {
+        const propias: string[] = canceladasPorMi();
+        for (const reservaId of anteriores) {
+            if (idsAhora.includes(reservaId) || propias.includes(reservaId)) continue;
 
-        //si ya se avisó de esta reserva, no se repite
-        const clave: string = `avisos:suspension:${usuario.id}:${reserva.id}`;
-        if (Storage.getItemSync(clave)) continue;
+            try {
+                const reserva: Reserva = await obtenerReserva(reservaId);
+                if (reserva.estado !== "cancelada") continue; //paso a cumplida o ausente: no es suspension
 
-        try {
-            const grilla: Turno[] = await obtenerGrilla(reserva.espacioId, datos.fecha);
-            const turno: Turno | undefined = grilla.find((t) => t.id === reserva.turnoId);
-            if (!turno || turno.estado !== "mantenimiento") continue;
+                const datos: DatosTurno | null = leerTurnoId(reserva.turnoId);
+                const inicio: Date | null = inicioDelTurno(reserva.turnoId);
+                if (!datos || !inicio || inicio.getTime() < Date.now()) continue;
 
-            const espacio = await obtenerEspacio(reserva.espacioId);
-            await cancelarRecordatorio(reserva.id); //ya no tiene sentido recordar un turno suspendido
-            const avisado: boolean = await avisarSuspension(reserva, espacio.nombre, turno.motivoBloqueo);
-            if (avisado) Storage.setItemSync(clave, "1");
-        } catch (e) {
-            console.warn("No se pudo revisar la suspension de", reserva.id, e);
+                //el motivo del bloqueo viene en el turno de la grilla
+                const grilla: Turno[] = await obtenerGrilla(reserva.espacioId, datos.fecha);
+                const turno: Turno | undefined = grilla.find((t) => t.id === reserva.turnoId);
+                const espacio = await obtenerEspacio(reserva.espacioId);
+
+                await cancelarRecordatorio(reserva.id); //ya no tiene sentido recordar un turno suspendido
+                await avisarSuspension(reserva, espacio.nombre, turno ? turno.motivoBloqueo : null);
+            } catch (e) {
+                console.warn("No se pudo revisar la suspension de", reservaId, e);
+            }
         }
     }
+
+    Storage.setItemSync(clave, JSON.stringify(idsAhora));
 }
 
 //2) turno liberado: en un espacio favorito, un turno que estaba reservado y ahora esta libre
@@ -112,13 +130,8 @@ async function revisarGrilla(
             if (!turno || turno.estado !== "libre" || esTurnoPasado(turno.fecha, turno.inicio)) continue;
 
             //si lo cancelo la propia persona no tiene sentido avisarle
-            let reserva: Reserva | null = null;
-            try {
-                reserva = await obtenerReserva(anteriores[turnoId]);
-            } catch (e) {
-                reserva = null;
-            }
-            if (reserva && reserva.usuarioId === usuario.id) continue;
+            //(la API no deja ver reservas ajenas, por eso se usa la lista de canceladas propias)
+            if (canceladasPorMi().includes(anteriores[turnoId])) continue;
 
             try {
                 const espacio = await obtenerEspacio(espacioId);

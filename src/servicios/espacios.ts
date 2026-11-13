@@ -1,60 +1,73 @@
-import { Espacio, Deporte, RespuestaExito, ErrorApi } from "../tipos";
-import { ESPACIOS } from "../mocks/espacios";
-import { DEPORTES } from "../mocks/deportes";
-import { USUARIOS } from "../mocks/usuarios";
+import { Espacio, Deporte, RespuestaExito, Usuario } from "../tipos";
+import { pedir, pedirDatos } from "./api";
+import { conCache } from "./cache";
 
-// Ninguna pantalla debe importar los mocks directamente: todo pasa por acá.
-// El día que llegue la API de la cátedra, solo cambia el cuerpo de estas
-// funciones (agregar el fetch), las firmas quedan iguales.
-
-function demorar<T>(valor: T, ms = 400): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(valor), ms));
-}
+//PERSONA B - espacios, deportes y favoritos contra la API de la catedra
+//  GET /espacios            (filtros: deporteId, complejo)
+//  GET /espacios/<id>
+//  GET /deportes
+//  PUT / DELETE /yo/espacios-favoritos/<espacioId>
+//el catalogo se guarda en el telefono para poder verlo sin conexion
 
 export interface FiltrosEspacios {
-  deporteId?: string;
-  complejo?: string;
+    deporteId?: string;
+    complejo?: string;
 }
 
-export async function listarEspacios(
-  filtros: FiltrosEspacios = {}
-): Promise<RespuestaExito<Espacio[]>> {
-  let resultado = ESPACIOS.filter((e) => e.activo);
-  if (filtros.deporteId) resultado = resultado.filter((e) => e.deporteId === filtros.deporteId);
-  if (filtros.complejo) resultado = resultado.filter((e) => e.complejo === filtros.complejo);
+//son 11 espacios: con una pagina de 100 entran todos
+const TODOS: string = "pagina=1&porPagina=100";
 
-  return demorar({
-    datos: resultado,
-    meta: { total: resultado.length, pagina: 1, porPagina: resultado.length },
-  });
+//trae todos los espacios activos (con copia local) y filtra en el telefono:
+//asi los filtros tambien andan sin conexion
+async function todosLosEspacios(): Promise<RespuestaExito<Espacio[]>> {
+    return conCache("espacios", async () => {
+        const respuesta = await pedir<Espacio[]>(`/espacios?${TODOS}`);
+        return {
+            datos: respuesta.datos,
+            meta: respuesta.meta ?? { total: respuesta.datos.length, pagina: 1, porPagina: 100 },
+        };
+    });
+}
+
+export async function listarEspacios(filtros: FiltrosEspacios = {}): Promise<RespuestaExito<Espacio[]>> {
+    const todos = await todosLosEspacios();
+    let resultado: Espacio[] = todos.datos;
+    if (filtros.deporteId) resultado = resultado.filter((e) => e.deporteId === filtros.deporteId);
+    if (filtros.complejo) resultado = resultado.filter((e) => e.complejo === filtros.complejo);
+    return {
+        datos: resultado,
+        meta: { total: resultado.length, pagina: 1, porPagina: resultado.length },
+    };
 }
 
 export async function obtenerEspacio(id: string): Promise<Espacio> {
-  const espacio = ESPACIOS.find((e) => e.id === id);
-  if (!espacio) {
-    throw new ErrorApi("ESPACIO_NO_ENCONTRADO", "No encontramos ese espacio.");
-  }
-  return demorar(espacio);
+    return conCache(`espacio:${id}`, () => pedirDatos<Espacio>(`/espacios/${encodeURIComponent(id)}`));
 }
 
 export async function listarDeportes(): Promise<RespuestaExito<Deporte[]>> {
-  return demorar({ datos: DEPORTES, meta: { total: DEPORTES.length, pagina: 1, porPagina: DEPORTES.length } });
+    return conCache("deportes", async () => {
+        const respuesta = await pedir<Deporte[]>(`/deportes?${TODOS}`);
+        return {
+            datos: respuesta.datos,
+            meta: respuesta.meta ?? { total: respuesta.datos.length, pagina: 1, porPagina: 100 },
+        };
+    });
 }
 
 export async function listarComplejos(): Promise<string[]> {
-  const complejos = Array.from(new Set(ESPACIOS.map((e) => e.complejo)));
-  return demorar(complejos);
+    const todos = await todosLosEspacios();
+    return Array.from(new Set(todos.datos.map((e) => e.complejo)));
 }
 
-//PERSONA B - agrega o saca un espacio de los favoritos del usuario y devuelve la lista nueva
-export async function alternarFavorito(usuarioId: string, espacioId: string): Promise<string[]> {
-    const usuario = USUARIOS.find((u) => u.id === usuarioId);
-    if (!usuario) throw new ErrorApi("USUARIO_NO_ENCONTRADO", "No encontramos ese usuario.");
-
-    if (usuario.espaciosFavoritos.includes(espacioId)) {
-        usuario.espaciosFavoritos = usuario.espaciosFavoritos.filter((id) => id !== espacioId);
-    } else {
-        usuario.espaciosFavoritos = [...usuario.espaciosFavoritos, espacioId];
+//agrega o saca un espacio de los favoritos y devuelve la lista nueva
+//(el usuario sale del token de la sesion, no hace falta mandarlo)
+export async function alternarFavorito(espacioId: string, esFavoritoAhora: boolean): Promise<string[] | null> {
+    const ruta: string = `/yo/espacios-favoritos/${encodeURIComponent(espacioId)}`;
+    if (esFavoritoAhora) {
+        //DELETE responde 204 sin cuerpo: la lista nueva se pide despues con /yo
+        await pedir<void>(ruta, { metodo: "DELETE" });
+        return null;
     }
-    return demorar([...usuario.espaciosFavoritos]);
+    const usuario: Usuario = await pedirDatos<Usuario>(ruta, { metodo: "PUT" });
+    return usuario.espaciosFavoritos;
 }

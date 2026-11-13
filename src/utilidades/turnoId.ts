@@ -1,24 +1,29 @@
-//el id de un turno tiene la forma "tur-<espacioId>-<AAAA-MM-DD>-<HH>"
-//ejemplo: "tur-esp-02-2026-09-19-19" -> fecha "2026-09-19", hora "19:00"
-//una reserva solo guarda el turnoId, de ahi sacamos cuando empieza
+//el id de un turno lo arma la API con la forma "tur-<espacioId>-<AAAAMMDD>-<HH>"
+//ejemplo: "tur-esp-02-20260919-19" -> espacio "esp-02", fecha "2026-09-19", hora "19:00"
+//(la API lo documenta asi: el turno no se guarda, se arma con esos datos)
+//una reserva solo trae el turnoId, de ahi sacamos el dia y la hora del turno
 
 export interface DatosTurno {
-    fecha: string;
-    hora: string;
+    espacioId: string;
+    fecha: string; // "AAAA-MM-DD"
+    hora: string; // "HH:00" (inicio)
+    fin: string; // "HH:00"
 }
 
-//lee la fecha y la hora desde las ultimas 4 partes del id
+const FORMATO_ID: RegExp = /^tur-(esp-[A-Za-z0-9_-]+)-(\d{4})(\d{2})(\d{2})-(\d{2})$/;
+
 export function leerTurnoId(turnoId: string): DatosTurno | null {
-    const partes: string[] = turnoId.split("-");
-    if (partes.length < 4) return null;
+    const partes = FORMATO_ID.exec(turnoId);
+    if (!partes) return null;
 
-    const hora: string = partes[partes.length - 1];
-    const dia: string = partes[partes.length - 2];
-    const mes: string = partes[partes.length - 3];
-    const anio: string = partes[partes.length - 4];
-
-    if (isNaN(Number(anio + mes + dia + hora))) return null;
-    return { fecha: `${anio}-${mes}-${dia}`, hora: `${hora}:00` };
+    const [, espacioId, anio, mes, dia, hh] = partes;
+    const horaFin: string = String(Number(hh) + 1).padStart(2, "0");
+    return {
+        espacioId: espacioId,
+        fecha: `${anio}-${mes}-${dia}`,
+        hora: `${hh}:00`,
+        fin: `${horaFin}:00`,
+    };
 }
 
 //devuelve el momento en que empieza el turno
@@ -26,9 +31,15 @@ export function inicioDelTurno(turnoId: string): Date | null {
     const datos: DatosTurno | null = leerTurnoId(turnoId);
     if (!datos) return null;
 
-    //se arma con anio/mes/dia por separado (horario local), igual que esTurnoPasado:
+    //se arma con anio/mes/dia por separado (horario local):
     //new Date("AAAA-MM-DD") usa UTC y en Argentina corre la fecha un dia para atras
     const [anio, mes, dia] = datos.fecha.split("-").map(Number);
     const hora: number = Number(datos.hora.split(":")[0]);
     return new Date(anio, mes - 1, dia, hora, 0, 0, 0);
+}
+
+//"2026-09-19" -> "19/09"
+export function fechaCorta(fecha: string): string {
+    const [, mes, dia] = fecha.split("-");
+    return `${dia}/${mes}`;
 }
