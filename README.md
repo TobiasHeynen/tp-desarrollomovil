@@ -16,7 +16,7 @@ puerta.
 |---|---|
 | Tobias Heynen | Autenticación y perfil |
 | _(completar)_ | Espacios y mapa |
-| _(completar)_ | Disponibilidad y reservas |
+| _Cristian Sambrana_ | Disponibilidad y reservas |
 | _(completar)_ | Ingreso el día del turno y avisos |
 | _(completar)_ | Panel de encargado/administrador y offline |
 
