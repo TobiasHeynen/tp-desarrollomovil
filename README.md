@@ -23,12 +23,7 @@ puerta.
 ## Entrega
 
 - **Código fuente:** este repositorio (incluye `app.json` y `eas.json`, sin `node_modules`).
-
-El APK se genera con:
-
-```bash
-eas build --platform android --profile preview
-```
+- **Video:** cada integrante muestra su parte de la app funcionando.
 
 ## Tecnologías
 
@@ -39,16 +34,26 @@ eas build --platform android --profile preview
 | Navegación | Expo Router |
 | Estilos | `StyleSheet` |
 | Íconos | `@react-native-vector-icons/ionicons` |
-| Entrega | Build de producción con EAS |
+| Datos | API de la cátedra (NestJS), corriendo en la computadora con SQLite |
 
 ## Cómo correrla
 
 La app usa la [API de la cátedra](https://github.com/franco-ruisdias-uner/api-proyectos-mobile/tree/main/api-reservas-deportivas),
 que hay que tener corriendo.
 
-1. **Levantar la API** (en otra carpeta, siguiendo su README). Con Docker
-   alcanza con `docker compose up`. Al arrancar muestra la dirección para
-   el teléfono, por ejemplo `http://192.168.0.10:3000/salud`.
+1. **Levantar la API** en otra carpeta, siguiendo su README. Sin Docker,
+   con Node 24 y pnpm:
+
+   ```bash
+   pnpm install
+   copy .env.example .env
+   pnpm db:reiniciar
+   pnpm dev
+   ```
+
+   Al arrancar muestra la dirección para el teléfono, por ejemplo
+   `http://192.168.0.10:3000/salud`. Si el celular no llega, hay que
+   permitir el puerto 3000 en el firewall de Windows.
 2. **Configurar la dirección en la app**: copiar `.env.example` como `.env`
    y poner esa dirección (sin `/salud`):
 
@@ -67,11 +72,7 @@ Escanear el QR con **Expo Go** (Android) o con la cámara (iPhone). El
 celular, la computadora y la API tienen que estar en la misma red.
 
 En Expo Go no funcionan Face ID (iPhone) ni guardar el video para verlo sin
-conexión; en el APK sí.
-
-Para el APK, la API tiene que estar publicada en internet (la API explica
-cómo hacerlo gratis con Render + Supabase) y su dirección se carga como
-`EXPO_PUBLIC_API_URL` al hacer el build.
+conexión.
 
 ### Cuentas de prueba
 
