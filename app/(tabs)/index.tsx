@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -9,7 +9,7 @@ import {
     ActivityIndicator,
     Button,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { listarEspacios, listarDeportes, listarComplejos } from "../../src/servicios/espacios";
 import TarjetaEspacio from "../../src/componentes/TarjetaEspacio";
 import { Espacio, Deporte } from "../../src/tipos";
@@ -61,6 +61,12 @@ export default function ListadoEspacios() {
     useEffect(() => {
         cargarEspacios();
     }, [deporteElegido, complejoElegido]);
+
+     useFocusEffect(
+        useCallback(() => {
+            cargarEspacios();
+        }, [deporteElegido, complejoElegido])
+    );
 
     async function cargarFiltros(): Promise<void> {
         try {
