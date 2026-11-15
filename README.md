@@ -18,7 +18,7 @@ puerta.
 | Nancy  Graciela Torres | Espacios y mapa |
 | Cristian Sambrana | Disponibilidad y reservas |
 | Romina Soledad Troillan| Ingreso el día del turno y avisos |
-| _(completar)_ | Panel de encargado/administrador y offline |
+| Ileana Solis | Panel de encargado/administrador y offline |
 
 ## Entrega
 
