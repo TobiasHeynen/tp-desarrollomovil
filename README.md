@@ -15,9 +15,9 @@ puerta.
 | Integrante | Parte |
 |---|---|
 | Tobias Heynen | Autenticación y perfil |
-| _(completar)_ | Espacios y mapa |
+| Nancy  Graciela Torres | Espacios y mapa |
 | Cristian Sambrana | Disponibilidad y reservas |
-| _(completar)_ | Ingreso el día del turno y avisos |
+| Romina Soledad Troillan| Ingreso el día del turno y avisos |
 | _(completar)_ | Panel de encargado/administrador y offline |
 
 ## Entrega
