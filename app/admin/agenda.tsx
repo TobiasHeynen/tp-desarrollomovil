@@ -159,7 +159,7 @@ export default function AgendaDelDiaPantalla() {
         )}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dias}>
+      <ScrollView horizontal style={styles.scrollDias} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dias}>
         {dias.map((d) => (
           <TouchableOpacity
             key={d.fecha}
@@ -185,18 +185,22 @@ export default function AgendaDelDiaPantalla() {
             <Text style={styles.textoAccion}>Reintentar</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <SectionList
-          contentContainerStyle={styles.lista}
-          sections={secciones}
-          keyExtractor={(t) => t.id}
-          stickySectionHeadersEnabled={false}
-          refreshing={cargando}
-          onRefresh={cargar}
-          renderSectionHeader={({ section }) => <Text style={styles.titulo}>{section.title}</Text>}
-          renderItem={({ item }) => renderTurno(item)}
-          ListEmptyComponent={<Text style={styles.mensaje}>No hay turnos ocupados este día.</Text>}
-        />
+
+            ) : (
+        <View style={{ flex: 1 }}>
+          <SectionList
+            contentContainerStyle={styles.lista}
+            style={{ flexGrow: 0 }}
+            sections={secciones}
+            keyExtractor={(t) => t.id}
+            stickySectionHeadersEnabled={false}
+            refreshing={cargando}
+            onRefresh={cargar}
+            renderSectionHeader={({ section }) => <Text style={styles.titulo}>{section.title}</Text>}
+            renderItem={({ item }) => renderTurno(item)}
+            ListEmptyComponent={<Text style={styles.mensaje}>No hay turnos ocupados este día.</Text>}
+          />
+        </View>
       )}
     </View>
   );
@@ -206,12 +210,13 @@ const styles = StyleSheet.create({
   acciones: { flexDirection: "row", flexWrap: "wrap", gap: 8, padding: 12 },
   accion: { backgroundColor: "#2E7D32", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
   textoAccion: { color: "#fff", fontWeight: "700" },
-  dias: { gap: 8, paddingHorizontal: 12, paddingBottom: 8 },
+  scrollDias: { height: 50, flexGrow: 0 },
+  dias: { gap: 8, paddingHorizontal: 12, paddingBottom: 8, flexGrow: 0 },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#eee" },
   chipActivo: { backgroundColor: "#2E7D32" },
   textoChip: { fontSize: 13, color: "#333" },
   textoChipActivo: { color: "#fff", fontWeight: "600" },
-  lista: { padding: 16, gap: 6 },
+  lista: { padding: 16, gap: 6, flexGrow: 0, justifyContent: "flex-start" },
   titulo: { fontSize: 15, fontWeight: "700", marginTop: 10, marginBottom: 4, color: "#1B5E20" },
   fila: {
     flexDirection: "row",
